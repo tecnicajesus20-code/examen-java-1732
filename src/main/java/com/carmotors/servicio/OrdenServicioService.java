@@ -139,10 +139,6 @@ public class OrdenServicioService implements Sujeto {
         observadores.addIfAbsent(Objects.requireNonNull(observador, "El observador es obligatorio."));
     }
 
-    @Override
-    public void removerObservador(Observador observador) {
-        observadores.remove(observador);
-    }
 
     @Override
     public void notificarObservadores(EventoServicioCompletado evento) {
