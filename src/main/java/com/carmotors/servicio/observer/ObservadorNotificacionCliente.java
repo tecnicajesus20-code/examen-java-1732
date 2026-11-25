@@ -10,17 +10,15 @@ import java.nio.file.StandardOpenOption;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
-/** Borrador persistente en TXT, no envía mensajes externos. */
+
 public final class ObservadorNotificacionCliente implements Observador {
     private static final DateTimeFormatter FORMATO = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final Path archivo;
 
-    /** La ruta relativa apunta a la raíz desde donde se inicia la aplicación. */
     public ObservadorNotificacionCliente() {
         this(Path.of("notificaciones_clientes.txt"));
     }
 
-    /** Constructor inyectable para probar sin escribir en la raíz del proyecto. */
     public ObservadorNotificacionCliente(Path archivo) {
         this.archivo = Objects.requireNonNull(archivo, "La ruta del archivo es obligatoria.");
     }
