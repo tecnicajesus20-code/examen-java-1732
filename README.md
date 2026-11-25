@@ -126,3 +126,28 @@ sincronización íntegra con ese commit. Consulta `INFORME_ARCHIVOS.md`.
 **Configuración:** antes de conectar MySQL, configura `CARMOTORS_DB_PASSWORD`
 en el entorno, como indica `docs/configuracion-jdbc.md`. Ejecuta
 `com.carmotors.PruebaObserver1732` desde `src/test/java` para validar el patrón sin MySQL.
+
+
+
+# Examen final 1732  Notificación al cliente con Observer 
+
+**Estudiante y grupo:** Kleiderson Salcedo | Yonder Maldonado, Brayan medina , Ricardo Vargas
+
+**Proyecto de origen:** https://github.com/RickDslayer/proyecto_java_grupo01
+
+**Acceso:** `com.carmotors.Main`:  
+1. Administrador  (admin / demo123)
+2. Atención y órdenes de servicio 
+3. Completar Orden de Servicio (opción 6).
+
+
+**Clases del creadas para el examen**
+
+- `src/main/java/com/carmotors/servicio/observer/Sujeto.java`
+- `src/main/java/com/carmotors/servicio/observer/Observador.java`
+- `src/main/java/com/carmotors/servicio/observer/ObservadorLogServicio.java`
+- `src/main/java/com/carmotors/servicio/observer/ObservadorNotificacionCliente.java`
+- `src/main/java/com/carmotors/modelo/EventoServicioCompletado.java`
+- `src/main/java/com/carmotors/servicio/OrdenServicioService.java`
+- `src/main/java/com/carmotors/vista/VistaOrdenes.java`
+- `src/main/java/com/carmotors/Main.java`

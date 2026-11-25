@@ -144,7 +144,6 @@ public class OrdenServicioService implements Sujeto {
         observadores.remove(observador);
     }
 
-    /** Una excepción del log/TXT no puede deshacer una transacción ya confirmada. */
     @Override
     public void notificarObservadores(EventoServicioCompletado evento) {
         Objects.requireNonNull(evento, "El evento no puede ser nulo.");
