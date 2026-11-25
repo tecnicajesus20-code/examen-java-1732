@@ -3,10 +3,11 @@ package com.carmotors.config;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 
-/** Configuración local del ejercicio, sin variables de entorno. */
+/** Valores de configuración compartidos por la aplicación. */
 public final class ConfiguracionAplicacion {
     private ConfiguracionAplicacion() {}
-    // Tasa de demostración del proyecto (19 %); no constituye una regla fiscal universal.
+
+    // Tasa acordada para el ejercicio CarMotors; no se presume una regla fiscal general.
     public static final BigDecimal TASA_IMPUESTO = new BigDecimal("0.19");
     public static final Path CARPETA_FACTURAS = Path.of("facturas");
 }

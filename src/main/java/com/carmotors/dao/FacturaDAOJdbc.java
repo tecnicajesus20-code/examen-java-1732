@@ -76,6 +76,7 @@ public final class FacturaDAOJdbc implements FacturaDAO {
         return detalle;
     }
 
+
     @Override
     public Optional<DocumentoFactura> buscarPorOrden(Connection con, long ordenId) {
         String sql = """
@@ -87,9 +88,9 @@ public final class FacturaDAOJdbc implements FacturaDAO {
                 JOIN modelos_vehiculo m ON m.id = v.modelo_id JOIN marcas_vehiculo marca ON marca.id = m.marca_id
                 WHERE f.servicio_id = ?
                 """;
-        try (var ps = con.prepareStatement(sql)) {
-            ps.setLong(1, ordenId);
-            try (var rs = ps.executeQuery()) {
+        try (PreparedStatement sentencia = con.prepareStatement(sql)) {
+            sentencia.setLong(1, ordenId);
+            try (ResultSet rs = sentencia.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 return Optional.of(new DocumentoFactura(rs.getLong("id"), rs.getLong("servicio_id"),
                         rs.getObject("fecha_emision", java.time.LocalDateTime.class), rs.getString("cliente"),
@@ -99,7 +100,9 @@ public final class FacturaDAOJdbc implements FacturaDAO {
                         rs.getBigDecimal("total_repuestos"), rs.getBigDecimal("total_mano_obra"),
                         rs.getBigDecimal("impuestos"), rs.getBigDecimal("total_final")));
             }
-        } catch (SQLException e) { throw new DaoException("No se pudo consultar la factura registrada.", e); }
+        } catch (SQLException e) {
+            throw new DaoException("No se pudo consultar la factura registrada.", e);
+        }
     }
 
     @Override

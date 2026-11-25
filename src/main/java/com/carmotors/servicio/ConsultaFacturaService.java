@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+/** Consulta una factura ya persistida y delega su representación TXT. */
 public final class ConsultaFacturaService {
     private final FacturaDAO dao;
     private final Supplier<Connection> conexiones;
@@ -26,7 +27,9 @@ public final class ConsultaFacturaService {
         try (Connection con = conexiones.get()) {
             return dao.buscarPorOrden(con, ordenId)
                     .orElseThrow(() -> new ValidacionException("La orden no tiene una factura registrada."));
-        } catch (SQLException e) { throw new DaoException("No se pudo cerrar la consulta de factura.", e); }
+        } catch (SQLException e) {
+            throw new DaoException("No se pudo cerrar la consulta de factura.", e);
+        }
     }
 
     public String mostrar(long ordenId) { return exportador.contenido(consultar(ordenId)); }

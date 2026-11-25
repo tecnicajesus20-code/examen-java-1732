@@ -1,26 +1,20 @@
 package com.carmotors.vista;
 
-import com.carmotors.controlador.OrdenServicioController;
 import com.carmotors.controlador.FacturaController;
-
+import com.carmotors.controlador.OrdenServicioController;
 import java.util.Objects;
 
-/**
- * Flujo administrativo de facturación y entrega de órdenes.
- *
- * Solo lee opciones y presenta resultados. OrdenServicioController delega
- * la transacción de facturación y entrega a OrdenServicioService.
- * El controlador de facturas consulta y exporta el documento después del commit.
- */
+/** Consola de facturación: el service controla el commit y el TXT se genera después. */
 public final class VistaFacturacion {
     private final Consola consola;
     private final OrdenServicioController ordenes;
     private final FacturaController facturas;
     private final String carpetaFacturas;
 
-    public VistaFacturacion(Consola consola, OrdenServicioController ordenes, FacturaController facturas, String carpetaFacturas) {
-        this.consola = Objects.requireNonNull(consola, "La consola es obligatoria");
-        this.ordenes = Objects.requireNonNull(ordenes, "El controlador de órdenes es obligatorio");
+    public VistaFacturacion(Consola consola, OrdenServicioController ordenes,
+                           FacturaController facturas, String carpetaFacturas) {
+        this.consola = Objects.requireNonNull(consola);
+        this.ordenes = Objects.requireNonNull(ordenes);
         this.facturas = Objects.requireNonNull(facturas);
         this.carpetaFacturas = Objects.requireNonNull(carpetaFacturas);
     }
@@ -81,7 +75,6 @@ public final class VistaFacturacion {
                 consola.mostrar("Facturación cancelada.");
                 return;
             }
-            // El Service verifica estado, duplicados y factura en la misma transacción.
             ordenes.facturar(String.valueOf(id));
             consola.mostrar("Factura registrada. La orden está en estado Facturado.");
             consola.mostrar(facturas.consultar(id.toString()));
@@ -119,7 +112,6 @@ public final class VistaFacturacion {
                 consola.mostrar("Entrega cancelada.");
                 return;
             }
-            // La validación de factura existente y la transacción pertenecen al Service.
             consola.mostrar(ordenes.cambiarEstado(String.valueOf(id), "Entregado"));
         });
     }
@@ -141,7 +133,6 @@ public final class VistaFacturacion {
         if (id != null) ejecutar(() -> consola.mostrar(ordenes.buscarPorId(String.valueOf(id))));
     }
 
-    /** El usuario identifica una orden existente; no se genera un ID desde esta vista. */
     private Integer leerIdOrden() {
         while (true) {
             String entrada = consola.leerTexto("Número de orden existente (0 = cancelar)");
@@ -150,18 +141,15 @@ public final class VistaFacturacion {
                 int id = Integer.parseInt(entrada);
                 if (id > 0) return id;
             } catch (NumberFormatException ignored) {
-                // La vista informa el error y permite repetir la entrada.
+                // Permite volver a ingresar el número.
             }
             consola.mostrar("Introduce un número de orden entero mayor que cero.");
         }
     }
 
     private void ejecutar(Runnable accion) {
-        try {
-            accion.run();
-        } catch (RuntimeException e) {
-            consola.mostrar("No se pudo completar la operación: " + mensaje(e));
-        }
+        try { accion.run(); }
+        catch (RuntimeException e) { consola.mostrar("No se pudo completar la operación: " + mensaje(e)); }
         consola.esperar();
     }
 

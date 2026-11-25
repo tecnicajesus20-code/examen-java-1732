@@ -1,6 +1,12 @@
 package com.carmotors.servicio;
 
 import com.carmotors.dao.OrdenServicioDAO;
+import com.carmotors.dao.ClienteDAO;
+import com.carmotors.modelo.Cliente;
+import com.carmotors.modelo.EventoServicioCompletado;
+import com.carmotors.servicio.observer.Observador;
+import com.carmotors.servicio.observer.Sujeto;
+import java.util.concurrent.CopyOnWriteArrayList;
 import com.carmotors.dao.factory.DAOFactory;
 import com.carmotors.excepcion.DaoException;
 import com.carmotors.excepcion.ValidacionException;
@@ -21,7 +27,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** Alta, consulta y ciclo de vida de órdenes; consumo/facturación mediante contratos transaccionales. */
-public class OrdenServicioService {
+public class OrdenServicioService implements Sujeto {
     private final OrdenServicioDAO dao;
     private final VehiculoConsulta vehiculos;
     private final Supplier<Connection> conexiones;
@@ -29,6 +35,9 @@ public class OrdenServicioService {
     private final ConsumoReservasOrden consumo;
     private final FacturacionOrden facturacion;
     private final PublicadorInventario publicador;
+    /** Consulta en la misma transacción; es opcional para mantener los constructores antiguos. */
+    private final ClienteDAO clienteDAO;
+    private final CopyOnWriteArrayList<Observador> observadores = new CopyOnWriteArrayList<>();
     private static final Map<String, String> SIGUIENTE = Map.of(
             "Pendiente", "En Proceso", "En Proceso", "Completado",
             "Completado", "Facturado", "Facturado", "Entregado");
@@ -64,6 +73,14 @@ public class OrdenServicioService {
     public OrdenServicioService(OrdenServicioDAO dao, VehiculoConsulta vehiculos,
                                 Supplier<Connection> conexiones, Clock reloj, ConsumoReservasOrden consumo,
                                 FacturacionOrden facturacion, PublicadorInventario publicador) {
+        this(dao, vehiculos, conexiones, reloj, consumo, facturacion, publicador, null);
+    }
+
+    /** Constructor del examen: nombre del cliente recuperado por DAO, sin SQL en el Service. */
+    public OrdenServicioService(OrdenServicioDAO dao, VehiculoConsulta vehiculos,
+                                Supplier<Connection> conexiones, Clock reloj, ConsumoReservasOrden consumo,
+                                FacturacionOrden facturacion, PublicadorInventario publicador, ClienteDAO clienteDAO) {
+        this.clienteDAO = clienteDAO;
         this.consumo = Objects.requireNonNull(consumo);
         this.facturacion = Objects.requireNonNull(facturacion);
         this.publicador = Objects.requireNonNull(publicador);
@@ -117,10 +134,35 @@ public class OrdenServicioService {
     public void facturarOrden(int id) { cambiarEstado(id, "Facturado"); }
     public void entregarOrden(int id) { cambiarEstado(id, "Entregado"); }
 
+    @Override
+    public void registrarObservador(Observador observador) {
+        observadores.addIfAbsent(Objects.requireNonNull(observador, "El observador es obligatorio."));
+    }
+
+    @Override
+    public void removerObservador(Observador observador) {
+        observadores.remove(observador);
+    }
+
+    /** Una excepción del log/TXT no puede deshacer una transacción ya confirmada. */
+    @Override
+    public void notificarObservadores(EventoServicioCompletado evento) {
+        Objects.requireNonNull(evento, "El evento no puede ser nulo.");
+        for (Observador observador : observadores) {
+            try {
+                observador.actualizar(evento);
+            } catch (RuntimeException error) {
+                System.err.println("No se pudo registrar una notificación del servicio #"
+                        + evento.servicioId() + ": " + error.getMessage());
+            }
+        }
+    }
+
     public void cambiarEstado(int id, String destino) {
         validarId(id);
         String nuevo = opcion(destino, List.of("Pendiente", "En Proceso", "Completado", "Facturado", "Entregado"), "estado");
         Set<Integer> afectados = Set.of();
+        EventoServicioCompletado evento = null;
         try (Connection con = conexiones.get()) {
             con.setAutoCommit(false);
             try {
@@ -149,6 +191,15 @@ public class OrdenServicioService {
                 if (!dao.actualizarEstado(con, id, orden.getEstado(), nuevo, fecha)) {
                     throw new ValidacionException("El estado de la orden cambió; vuelve a consultarla.");
                 }
+                if ("Completado".equals(nuevo) && !observadores.isEmpty()) {
+                    if (clienteDAO == null) {
+                        throw new ValidacionException("Falta configurar la consulta de clientes para notificaciones.");
+                    }
+                    Cliente cliente = clienteDAO.buscarPorId(con, orden.getClienteId())
+                            .orElseThrow(() -> new ValidacionException("No existe el cliente de la orden."));
+                    evento = new EventoServicioCompletado(id, orden.getVehiculoId(),
+                            orden.getPlaca(), cliente.getId(), cliente.getNombre(), fecha);
+                }
                 con.commit();
             } catch (RuntimeException | SQLException e) {
                 try { con.rollback(); } catch (SQLException rollback) { e.addSuppressed(rollback); }
@@ -160,6 +211,7 @@ public class OrdenServicioService {
         }
         // El publicador aísla los errores de sus observadores; nunca publica antes del commit.
         afectados.forEach(publicador::publicar);
+        if (evento != null) notificarObservadores(evento);
     }
 
     public Optional<OrdenServicio> buscarPorId(int id) {

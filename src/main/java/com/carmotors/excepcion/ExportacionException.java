@@ -1,6 +1,8 @@
 package com.carmotors.excepcion;
 
-/** Un fallo del archivo no revierte una factura ya confirmada en MySQL. */
-public final class ExportacionException extends RuntimeException {
-    public ExportacionException(String mensaje, Throwable causa) { super(mensaje, causa); }
+/** Error al generar el archivo, independiente de la transacción de facturación. */
+public class ExportacionException extends RuntimeException {
+    public ExportacionException(String mensaje, Throwable causa) {
+        super(mensaje, causa);
+    }
 }
